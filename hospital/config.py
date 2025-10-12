@@ -44,8 +44,8 @@ GRID_PRICE_TOU = np.repeat(GRID_PRICE_TOU_HOURLY, 4) # Repeat for 15-min interva
 
 # DG quadratic fuel cost: C(P) = a*P^2 + b*P + c ($/hr)
 DG_COST_A = 0.001
-DG_COST_B = 0.2
-DG_COST_C = 5
+DG_COST_B = 0.02
+DG_COST_C = 0.5
 
 # Battery degradation cost ($/kWh cycled)
 BATT_DEG_COST_PER_KWH = 0.05

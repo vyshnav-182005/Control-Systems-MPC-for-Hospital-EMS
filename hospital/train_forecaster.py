@@ -33,7 +33,7 @@ def generate_training_data(days=100):
     hours = (minutes / 60.0) % 24  # Ensure hours loop every 24h
 
     # Outdoor Temperature (°C)
-    t_out = 15 + 10 * np.sin((hours - 8) * np.pi / 12) + np.random.randn(total_steps) * 0.5
+    t_out = 31 + 5 * np.sin((hours - 8) * np.pi / 12) + np.random.randn(total_steps) * 0.5
     
     # PV Generation (kW)
     pv = np.maximum(0, 75 * np.sin((hours - 6) * np.pi / 12) * (1 - (hours - 13)**2 / 100))
@@ -93,8 +93,8 @@ def train_model():
             print(f'Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.6f}')
 
     # Save the trained model and scalers
-    torch.save(model.state_dict(), 'hospital_mpc/forecast_model.pth')
-    joblib.dump((scaler_X, scaler_y), 'hospital_mpc/scalers.pkl')
+    torch.save(model.state_dict(), 'hospital/forecast_model.pth')
+    joblib.dump((scaler_X, scaler_y), 'hospital/scalers.pkl')
     
     print("✅ Training complete. Model and scalers saved.")
 

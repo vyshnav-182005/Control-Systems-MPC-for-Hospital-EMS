@@ -24,9 +24,9 @@ class ForecastANN(nn.Module):
 # --- 2. Load the trained model and scalers ---
 try:
     model = ForecastANN()
-    model.load_state_dict(torch.load('hospital_mpc/forecast_model.pth'))
+    model.load_state_dict(torch.load('hospital/forecast_model.pth'))
     model.eval()  # Set the model to evaluation mode
-    scaler_X, scaler_y = joblib.load('hospital_mpc/scalers.pkl')
+    scaler_X, scaler_y = joblib.load('hospital/scalers.pkl')
     print("🤖 PyTorch ANN forecasting model loaded successfully.")
 except FileNotFoundError:
     print("⚠️ Model files not found. Please run 'train_forecaster.py' first.")
