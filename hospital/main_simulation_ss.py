@@ -1,4 +1,4 @@
-# hospital_mpc/main_simulation.py
+# hospital_mpc/main_simulation_ss.py
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -7,22 +7,25 @@ import time
 from . import config
 from .forecasting import get_ann_forecasts, get_real_time_measurements
 from .models import ThermalZoneModel, BESSModel, SCModel
-from .mpc_controller import SupervisoryMPC, RealTimeMPC
+from .mpc_controller_ss import SupervisoryMPC_SS, RealTimeMPC
 
-def run_simulation():
-    """Main function to run the hierarchical electro-thermal MPC simulation."""
+def run_simulation_ss():
+    """Main function to run the hierarchical electro-thermal MPC simulation
+       USING THE STATE-SPACE FORMULATION."""
     start_time = time.time()
     
     # 1. Get 24-hour Forecasts using the ANN
     forecasts = get_ann_forecasts()
     
-    # 2. Run Level 1 Supervisory MPC to get the optimal 24-hour plan
-    sup_mpc = SupervisoryMPC(forecasts)
+    # 2. Run Level 1 Supervisory MPC (State-Space version) to get the optimal 24-hour plan
+    sup_mpc = SupervisoryMPC_SS(forecasts)
     optimal_plan = sup_mpc.create_optimal_plan()
     
     if optimal_plan is None:
+        print("Halting simulation due to optimization failure.")
         return
 
+    # The rest of the simulation logic is identical to the original version
     p_grid_plan, p_dg_plan, p_bess_plan, q_hvac_plan = optimal_plan.T
     p_hvac_plan = q_hvac_plan / config.HVAC_COP
     
@@ -42,42 +45,32 @@ def run_simulation():
     print("\n⚡️ Starting Level 2 real-time simulation loop (1-min steps)...")
     cumulative_cost = 0
     
-    # Create the time axis for interpolation once before the loop
     forecast_minutes = np.arange(config.SUPERVISORY_STEPS) * config.SUPERVISORY_TIMESTEP_MIN
     
     for k_sup in range(config.SUPERVISORY_STEPS):
         for k_rt in range(config.REALTIME_STEPS_PER_SUPERVISORY_STEP):
             k_total = k_sup * config.REALTIME_STEPS_PER_SUPERVISORY_STEP + k_rt
             
-            # Get "real" measurements for the current minute
             real_measurements = get_real_time_measurements(forecasts, k_sup, k_rt)
             
-            # --- Level 2: Real-Time Control Logic ---
-            # Determine the error between planned and actual power needs
             planned_net_load = forecasts['uncontrollable_load_kw'][k_sup] + p_hvac_plan[k_sup] - forecasts['pv_kw'][k_sup]
             real_net_load = real_measurements['uncontrollable_load_kw'] + p_hvac_plan[k_sup] - real_measurements['pv_kw']
             power_error_kw = real_net_load - planned_net_load
             
-            # Use RT_MPC to dispatch HESS and grid to correct the error
             p_bess_correction, p_sc_correction, p_grid_correction = rt_mpc.dispatch(power_error_kw)
             
-            # Calculate actual power values by adding corrections to the plan
             p_bess_actual = p_bess_plan[k_sup] + p_bess_correction
             p_sc_actual = p_sc_correction
             p_grid_actual = p_grid_plan[k_sup] + p_grid_correction
             p_dg_actual = p_dg_plan[k_sup]
             
-            # --- Update System State ---
-            # Interpolate forecast values to the current 1-minute step
             t_out_interp = np.interp(k_total, forecast_minutes, forecasts['t_out_c'])
-            # --- FIX: Added interpolation for internal_gain for consistency ---
             internal_gain_interp = np.interp(k_total, forecast_minutes, forecasts['internal_gain_kw'])
 
             t_in = thermal_zone.step(t_out_interp, internal_gain_interp, q_hvac_plan[k_sup])
             bess_soc = bess.step(p_bess_actual)
             sc_soc = sc.step(p_sc_actual)
             
-            # --- Record Data ---
             step_cost = (p_grid_actual * config.GRID_PRICE_TOU[k_sup] / 60) + \
                         (config.DG_COST_A * p_dg_actual**2 + config.DG_COST_B * p_dg_actual + (config.DG_COST_C if p_dg_actual > 0 else 0)) / 60
             cumulative_cost += step_cost
@@ -97,6 +90,7 @@ def run_simulation():
     print(f"✅ Simulation complete in {time.time() - start_time:.2f} seconds.")
     plot_results(history, forecasts)
 
+# The plotting function is identical and can be copied from the original file
 def plot_results(history, forecasts):
     """Generates plots to visualize the simulation outcome."""
     minutes = np.arange(config.TOTAL_REALTIME_STEPS)
@@ -109,7 +103,7 @@ def plot_results(history, forecasts):
     ax1.axhline(config.T_ZONE_MAX_C, color='k', linestyle='--')
     ax1.set_xlabel('Hour of Day')
     ax1.set_ylabel('Temperature (°C)', color='b')
-    ax1.set_title('Thermal Performance with 1-Minute Resolution')
+    ax1.set_title('Thermal Performance with 1-Minute Resolution (State-Space MPC)')
     ax1.grid(True)
     
     ax2 = ax1.twinx()
@@ -144,4 +138,4 @@ def plot_results(history, forecasts):
     plt.show()
 
 if __name__ == '__main__':
-    run_simulation()
+    run_simulation_ss()
