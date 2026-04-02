@@ -1,0 +1,41 @@
+# hospital_fuzzypid/config.py
+
+import numpy as np
+
+# Time steps
+SUPERVISORY_STEPS = 24  # 24 hours
+SUPERVISORY_TIMESTEP_MIN = 60  # 1 hour
+REALTIME_TIMESTEP_MIN = 1  # 1 minute
+REALTIME_STEPS_PER_SUPERVISORY_STEP = SUPERVISORY_TIMESTEP_MIN // REALTIME_TIMESTEP_MIN
+TOTAL_REALTIME_STEPS = SUPERVISORY_STEPS * REALTIME_STEPS_PER_SUPERVISORY_STEP
+
+# Thermal Model Parameters
+C_MASS_KWH_PER_C = 1000  # Thermal capacitance (kWh/°C)
+R_WALL_C_PER_KW = 0.5    # Thermal resistance (°C/kW)
+T_ZONE_MIN_C = 20
+T_ZONE_MAX_C = 25
+HVAC_COP = 3.0
+
+# HESS Parameters
+BESS_CAPACITY_KWH = 200
+BESS_MAX_POWER_KW = 50
+BESS_EFFICIENCY = 0.95
+BESS_INITIAL_SOC = 0.5
+
+SC_CAPACITY_KWH = 10
+SC_MAX_POWER_KW = 100
+SC_EFFICIENCY = 0.95
+SC_INITIAL_SOC = 0.5
+
+# DG Parameters
+DG_MAX_POWER_KW = 100
+DG_COST_A = 0.0001
+DG_COST_B = 0.05
+DG_COST_C = 10  # Startup cost
+
+# Grid Prices (TOU)
+GRID_PRICE_TOU = np.array([0.08] * 8 + [0.15] * 8 + [0.25] * 8)  # Low, medium, high
+
+# Costs
+BATT_DEG_COST_PER_KWH = 0.05
+THERMAL_PENALTY_WEIGHT = 1000
